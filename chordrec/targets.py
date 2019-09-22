@@ -1,6 +1,6 @@
 import numpy as np
 import string
-import mir_eval
+# import mir_eval
 
 
 def one_hot(class_ids, num_classes):
@@ -14,7 +14,7 @@ def one_hot(class_ids, num_classes):
     oh[np.arange(len(class_ids)), class_ids] = 1
 
     # make sure one-hot encoding corresponds to class ids
-    assert (oh.argmax(axis=1) == class_ids).all()
+    assert (oh.argmax(axis=1) == class_ids)
     # make sure there is only one id set per vector
     assert (oh.sum(axis=1) == 1).all()
 
@@ -123,9 +123,9 @@ class ChordsMajMin(IntervalAnnotationTarget):
         # first, create chord/class mapping. root note 'A' has id 0, increasing
         # with each semitone. we have duplicate mappings for flat and sharp
         # notes, just to be sure.
-        natural = zip(string.uppercase[:7], [0, 2, 3, 5, 7, 8, 10])
-        sharp = map(lambda v: (v[0] + '#', (v[1] + 1) % 12), natural)
-        flat = map(lambda v: (v[0] + 'b', (v[1] - 1) % 12), natural)
+        natural = list(zip(string.ascii_uppercase[:7], [0, 2, 3, 5, 7, 8, 10]))
+        sharp = list(map(lambda v: (v[0] + '#', (v[1] + 1) % 12), natural))
+        flat = list(map(lambda v: (v[0] + 'b', (v[1] - 1) % 12), natural))
 
         # 'no chord' is coded as 'N'. The class ID of 'N' is 24, after all
         # major and minor chords. Sometimes there is also an 'X' annotation,
@@ -160,8 +160,8 @@ class ChordsMajMin(IntervalAnnotationTarget):
                        self.num_classes)
 
     def _targets_to_annotations(self, targets):
-        natural = zip([0, 2, 3, 5, 7, 8, 10], string.uppercase[:7])
-        sharp = map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural)
+        natural = list(zip([0, 2, 3, 5, 7, 8, 10], string.ascii_uppercase[:7]))
+        sharp = list(map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural))
 
         semitone_to_label = dict(sharp + natural)
 
@@ -216,9 +216,9 @@ class ChordsRoot(IntervalAnnotationTarget):
         # first, create chord/class mapping. root note 'A' has id 0, increasing
         # with each semitone. we have duplicate mappings for flat and sharp
         # notes, just to be sure.
-        natural = zip(string.uppercase[:7], [0, 2, 3, 5, 7, 8, 10])
-        sharp = map(lambda v: (v[0] + '#', (v[1] + 1) % 12), natural)
-        flat = map(lambda v: (v[0] + 'b', (v[1] - 1) % 12), natural)
+        natural = list(zip(string.ascii_uppercase[:7], [0, 2, 3, 5, 7, 8, 10]))
+        sharp = list(map(lambda v: (v[0] + '#', (v[1] + 1) % 12), natural))
+        flat = list(map(lambda v: (v[0] + 'b', (v[1] - 1) % 12), natural))
 
         # 'no chord' is coded as 'N'. The class ID of 'N' is 12, after all
         # root notes. Sometimes there is also an 'X' annotation,
@@ -237,8 +237,8 @@ class ChordsRoot(IntervalAnnotationTarget):
         return one_hot(chord_root_note_ids, self.num_classes)
 
     def _targets_to_annotations(self, targets):
-        natural = zip([0, 2, 3, 5, 7, 8, 10], string.uppercase[:7])
-        sharp = map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural)
+        natural = list(zip([0, 2, 3, 5, 7, 8, 10], string.ascii_uppercase[:7]))
+        sharp = list(map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural))
 
         semitone_to_label = dict(sharp + natural + [(12, 'N')])
         spf = 1. / self.fps
@@ -262,100 +262,100 @@ class ChordsRoot(IntervalAnnotationTarget):
         return zip(start_times, end_times, chord_labels)
 
 
-class ChordsMajMinSevenths(IntervalAnnotationTarget):
+# class ChordsMajMinSevenths(IntervalAnnotationTarget):
+#
+#     def __init__(self, fps):
+#         # 73 classes - maj, 7, maj7, min, min7 minmaj7 with 12 each, 1 no chord
+#         super(ChordsMajMinSevenths, self).__init__(fps, 73)
+#
+#     @property
+#     def name(self):
+#         return 'chords_majminsevenths_fps={}'.format(self.fps)
+#
+#     def _dummy_target(self):
+#         dt = np.zeros(self.num_classes, dtype=np.float32)
+#         dt[-1] = 1
+#         return dt
+#
+#     def _annotations_to_targets(self, labels):
+#         root, semis, _ = mir_eval.chord.encode_many(labels, True)
+#         class_ids = root.copy()
+#
+#         # 'no chord' is last class
+#         class_ids[class_ids == -1] = self.num_classes - 1
+#
+#         # minor chords start at idx 36
+#         class_ids[semis[:, 3] == 1] += 36
+#
+#         # seventh shift
+#         seventh = semis[:, 10] == 1
+#         maj_seventh = semis[:, 11] == 1
+#
+#         # this weirdness is necessary because of a B:sus4(b7)/7 annotation
+#         # in the RWC corpus...
+#         maj_seventh &= ~seventh
+#         assert (seventh & maj_seventh).sum() == 0
+#
+#         class_ids[seventh] += 12
+#         class_ids[maj_seventh] += 24
+#
+#         return one_hot(class_ids, self.num_classes)
+#
+#     def _targets_to_annotations(self, targets):
+#         natural = zip([0, 2, 3, 5, 7, 8, 10], string.ascii_uppercase[:7])
+#         sharp = map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural)
+#         roots = {(a - 3) % 12: b for a, b in dict(sharp + natural).iteritems()}
+#         ext = ['maj', '7', 'maj7', 'min', 'min7', 'minmaj7']
+#
+#         def pred_to_label(pred):
+#             if pred == self.num_classes - 1:
+#                 return 'N'
+#
+#             return '{root}:{ext}'.format(
+#                 root=roots[pred % 12],
+#                 ext=ext[pred / 12]
+#             )
+#
+#         spf = 1. / self.fps
+#         labels = [(i * spf, pred_to_label(p)) for i, p in enumerate(targets)]
+#
+#         # join same consequtive predictions
+#         prev_label = (None, None)
+#         uniq_labels = []
+#
+#         for label in labels:
+#             if label[1] != prev_label[1]:
+#                 uniq_labels.append(label)
+#                 prev_label = label
+#
+#         # end time of last label is one frame duration after
+#         # the last prediction time
+#         start_times, chord_labels = zip(*uniq_labels)
+#         end_times = start_times[1:] + (labels[-1][0] + spf,)
+#
+#         return zip(start_times, end_times, chord_labels)
 
-    def __init__(self, fps):
-        # 73 classes - maj, 7, maj7, min, min7 minmaj7 with 12 each, 1 no chord
-        super(ChordsMajMinSevenths, self).__init__(fps, 73)
 
-    @property
-    def name(self):
-        return 'chords_majminsevenths_fps={}'.format(self.fps)
-
-    def _dummy_target(self):
-        dt = np.zeros(self.num_classes, dtype=np.float32)
-        dt[-1] = 1
-        return dt
-
-    def _annotations_to_targets(self, labels):
-        root, semis, _ = mir_eval.chord.encode_many(labels, True)
-        class_ids = root.copy()
-
-        # 'no chord' is last class
-        class_ids[class_ids == -1] = self.num_classes - 1
-
-        # minor chords start at idx 36
-        class_ids[semis[:, 3] == 1] += 36
-
-        # seventh shift
-        seventh = semis[:, 10] == 1
-        maj_seventh = semis[:, 11] == 1
-
-        # this weirdness is necessary because of a B:sus4(b7)/7 annotation
-        # in the RWC corpus...
-        maj_seventh &= ~seventh
-        assert (seventh & maj_seventh).sum() == 0
-
-        class_ids[seventh] += 12
-        class_ids[maj_seventh] += 24
-
-        return one_hot(class_ids, self.num_classes)
-
-    def _targets_to_annotations(self, targets):
-        natural = zip([0, 2, 3, 5, 7, 8, 10], string.uppercase[:7])
-        sharp = map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural)
-        roots = {(a - 3) % 12: b for a, b in dict(sharp + natural).iteritems()}
-        ext = ['maj', '7', 'maj7', 'min', 'min7', 'minmaj7']
-
-        def pred_to_label(pred):
-            if pred == self.num_classes - 1:
-                return 'N'
-
-            return '{root}:{ext}'.format(
-                root=roots[pred % 12],
-                ext=ext[pred / 12]
-            )
-
-        spf = 1. / self.fps
-        labels = [(i * spf, pred_to_label(p)) for i, p in enumerate(targets)]
-
-        # join same consequtive predictions
-        prev_label = (None, None)
-        uniq_labels = []
-
-        for label in labels:
-            if label[1] != prev_label[1]:
-                uniq_labels.append(label)
-                prev_label = label
-
-        # end time of last label is one frame duration after
-        # the last prediction time
-        start_times, chord_labels = zip(*uniq_labels)
-        end_times = start_times[1:] + (labels[-1][0] + spf,)
-
-        return zip(start_times, end_times, chord_labels)
-
-
-class ChromaTarget(IntervalAnnotationTarget):
-
-    def __init__(self, fps):
-        # vector of 12 semitones
-        super(ChromaTarget, self).__init__(fps, 12)
-
-    @property
-    def name(self):
-        return 'chroma_target_fps={}'.format(self.fps)
-
-    def _dummy_target(self):
-        return mir_eval.chord.NO_CHORD_ENCODED[1]
-
-    def _annotations_to_targets(self, labels):
-        roots, bitmaps, _ = mir_eval.chord.encode_many(labels)
-        chromas = mir_eval.chord.rotate_bitmaps_to_roots(bitmaps, roots)
-        return chromas
-
-    def _targets_to_annotations(self, targets):
-        raise RuntimeError('Does not work with this target.')
+# class ChromaTarget(IntervalAnnotationTarget):
+#
+#     def __init__(self, fps):
+#         # vector of 12 semitones
+#         super(ChromaTarget, self).__init__(fps, 12)
+#
+#     @property
+#     def name(self):
+#         return 'chroma_target_fps={}'.format(self.fps)
+#
+#     def _dummy_target(self):
+#         return mir_eval.chord.NO_CHORD_ENCODED[1]
+#
+#     def _annotations_to_targets(self, labels):
+#         roots, bitmaps, _ = mir_eval.chord.encode_many(labels)
+#         chromas = mir_eval.chord.rotate_bitmaps_to_roots(bitmaps, roots)
+#         return chromas
+#
+#     def _targets_to_annotations(self, targets):
+#         raise RuntimeError('Does not work with this target.')
 
 
 def add_sacred_config(ex):
