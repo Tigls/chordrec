@@ -8,7 +8,7 @@ import scipy.stats
 from targets import ChordsMajMin
 from docopt import docopt
 from experiment import TempDir
-from itertools import tee, izip
+from itertools import tee
 
 USAGE = """
 Post-Processes chord prediction files.
@@ -28,7 +28,7 @@ Options:
 def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
-    return izip(a, b)
+    return zip(a, b)
 
 
 def majority_vote(targets, win_size):
@@ -74,7 +74,7 @@ def main():
         beat_files = None
 
     pre_filter_scores = test.compute_average_scores(ann_files, pred_files)
-    print "Pre-Filter scores:"
+    print("Pre-Filter scores:")
     test.print_scores(pre_filter_scores)
 
     with TempDir() as tmpdir:
@@ -98,7 +98,7 @@ def main():
 
         post_filter_scores = test.compute_average_scores(ann_files,
                                                          pp_pred_files)
-        print "Post-Filter scores:"
+        print("Post-Filter scores:")
         test.print_scores(post_filter_scores)
 
         if out_dir is not None:

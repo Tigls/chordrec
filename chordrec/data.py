@@ -1,6 +1,6 @@
 from operator import eq
 import os
-import dmgr
+from chordrec.helpers import dmgr
 
 DATA_DIR = 'data'
 CACHE_DIR = 'feature_cache'

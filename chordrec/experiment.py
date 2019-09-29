@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import os
 import yaml
 import pickle
@@ -9,18 +9,17 @@ import sys
 from functools import partial
 from sacred import Experiment
 from sacred.observers import RunObserver
-import lasagne as lnn
-import theano
+# import lasagne as lnn
+# import theano
 import numpy as np
+# import nn
+from chordrec.helpers import dmgr
 
-import nn
-import dmgr
-from nn.utils import Colors
+from chordrec import targets
+from chordrec import augmenters
+from chordrec import data
+from chordrec import features
 
-import data
-import features
-import targets
-import augmenters
 
 
 class TempDir:
@@ -41,8 +40,7 @@ def compute_features(process_fn, agg_dataset, dest_dir, use_mask,
         os.makedirs(dest_dir)
     else:
         if not os.path.isdir(dest_dir):
-            print(Colors.red('Destination path exists but is not a directory!'),
-                  file=sys.stderr)
+            print('Destination path exists but is not a directory!')
             return
 
     iterate_batches = dmgr.iterators.iterate_batches
@@ -72,28 +70,28 @@ def compute_features(process_fn, agg_dataset, dest_dir, use_mask,
     return feature_files
 
 
-def create_optimiser(optimiser):
-    """
-    Creates a function that returns an optimiser and (optional) a learn
-    rate schedule
-    """
-
-    if optimiser['schedule'] is not None:
-        # if we have a learn rate schedule, create a theano shared
-        # variable and a corresponding update
-        lr = theano.shared(np.float32(optimiser['params']['learning_rate']))
-
-        # create a copy of the optimiser config dict so we do not change
-        # it
-        from copy import deepcopy
-        optimiser = deepcopy(optimiser)
-        optimiser['params']['learning_rate'] = lr
-        lrs = nn.LearnRateSchedule(learning_rate=lr, **optimiser['schedule'])
-    else:
-        lrs = None
-
-    return partial(getattr(lnn.updates, optimiser['name']),
-                   **optimiser['params']), lrs
+# def create_optimiser(optimiser):
+#     """
+#     Creates a function that returns an optimiser and (optional) a learn
+#     rate schedule
+#     """
+#
+#     if optimiser['schedule'] is not None:
+#         # if we have a learn rate schedule, create a theano shared
+#         # variable and a corresponding update
+#         lr = theano.shared(np.float32(optimiser['params']['learning_rate']))
+#
+#         # create a copy of the optimiser config dict so we do not change
+#         # it
+#         from copy import deepcopy
+#         optimiser = deepcopy(optimiser)
+#         optimiser['params']['learning_rate'] = lr
+#         lrs = nn.LearnRateSchedule(learning_rate=lr, **optimiser['schedule'])
+#     else:
+#         lrs = None
+#
+#     return partial(getattr(lnn.updates, optimiser['name']),
+#                    **optimiser['params']), lrs
 
 
 def rhash(d):
@@ -105,7 +103,7 @@ def rhash(d):
     m = hashlib.sha1()
 
     if isinstance(d, dict):
-        for _, value in sorted(d.items(), key=lambda (k, v): k):
+        for _, value in sorted(list(d.items()), key=lambda k_v: k_v[0]):
             m.update(rhash(value))
     else:
         m.update(str(d))
@@ -134,7 +132,7 @@ class PickleAndSymlinkObserver(RunObserver):
         self.run = None
         self._hash = None
 
-    def started_event(self, ex_info, host_info, start_time, config, comment):
+    def started_event(self, ex_info, command, host_info, start_time, config, meta_info, _id):
         self.config = config
 
         # remember the *exact* configuration used for this run
@@ -146,7 +144,7 @@ class PickleAndSymlinkObserver(RunObserver):
             'ex_info': ex_info,
             'host_info': host_info,
             'start_time': start_time,
-            'comment': comment
+            'comment': meta_info
         }
 
     def hash(self):
@@ -167,7 +165,7 @@ class PickleAndSymlinkObserver(RunObserver):
             os.makedirs(os.path.join(config_save_path, 'artifacts'))
         return config_save_path
 
-    def heartbeat_event(self, info, captured_out, beat_time):
+    def heartbeat_event(self, info, captured_out, beat_time, result):
         self.run['info'] = info
         self.run['captured_out'] = captured_out
         self.run['beat_time'] = beat_time
@@ -177,7 +175,7 @@ class PickleAndSymlinkObserver(RunObserver):
         with open(run_file, 'w') as f:
             pickle.dump(self.run, f)
 
-    def interrupted_event(self, interrupt_time):
+    def interrupted_event(self, interrupt_time, status):
         self.run['interrupt_time'] = interrupt_time
         interrupted_file = os.path.join(self.config_path(), 'interrupted.pkl')
         with open(interrupted_file, 'w') as f:
@@ -204,7 +202,7 @@ class PickleAndSymlinkObserver(RunObserver):
         if not os.path.exists(linkname):
             os.symlink(filename, linkname)
 
-    def artifact_event(self, filename):
+    def artifact_event(self, name, filename, metadata=None, content_type=None):
         """
         move an artifact from a temporary space to the actual observations
         directory for this run
@@ -215,19 +213,6 @@ class PickleAndSymlinkObserver(RunObserver):
 
     def get_artifact_path(self, path):
         return os.path.join(self.config_path(), 'artifacts', path)
-
-
-class ParamSaver:
-
-    def __init__(self, ex, net, tmp_dir):
-        self.ex = ex
-        self.tmp_dir = tmp_dir
-        self.net = net
-
-    def __call__(self, epoch):
-        fn = os.path.join(self.tmp_dir, 'params_{}.pkl'.format(epoch))
-        self.net.save_parameters(fn)
-        self.ex.add_artifact(fn)
 
 
 def setup(name):

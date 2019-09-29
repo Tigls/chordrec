@@ -1,5 +1,6 @@
-import numpy as np
+"""Converting annotations to targets"""
 import string
+import numpy as np
 # import mir_eval
 
 
@@ -10,27 +11,27 @@ def one_hot(class_ids, num_classes):
     :param num_classes: number of classes
     :return: one-hot encoding of class ids
     """
-    oh = np.zeros((len(class_ids), num_classes), dtype=np.float32)
-    oh[np.arange(len(class_ids)), class_ids] = 1
+    one_hot_enc = np.zeros((len(class_ids), num_classes), dtype=np.float32)
+    one_hot_enc[np.arange(len(class_ids)), class_ids] = 1
 
     # make sure one-hot encoding corresponds to class ids
-    assert (oh.argmax(axis=1) == class_ids)
+    assert one_hot_enc.argmax(axis=1) == class_ids
     # make sure there is only one id set per vector
-    assert (oh.sum(axis=1) == 1).all()
+    assert (one_hot_enc.sum(axis=1) == 1).all()
 
-    return oh
+    return one_hot_enc
 
 
-class IntervalAnnotationTarget(object):
-
+class IntervalAnnotationTarget:
+    """ almost an abstract class """
     def __init__(self, fps, num_classes):
         self.fps = fps
         self.num_classes = num_classes
 
-    def _annotations_to_targets(self, annotations):
+    def _annotations_to_targets(self, labels):
         """
         Class ID of 'no chord' should always be last!
-        :param annotations:
+        :param labels:
         :return:
         """
         raise NotImplementedError('Implement this')
@@ -93,25 +94,27 @@ class IntervalAnnotationTarget(object):
         return targets[np.nonzero(target_per_frame)[1]].astype(np.float32)
 
     def write_chord_predictions(self, filename, predictions):
-        with open(filename, 'w') as f:
-            f.writelines(['{:.3f}\t{:.3f}\t{}\n'.format(*p)
-                          for p in self._targets_to_annotations(predictions)])
+        """Write to file"""
+        with open(filename, 'w') as file:
+            file.writelines(['{:.3f}\t{:.3f}\t{}\n'.format(*p)
+                             for p in self._targets_to_annotations(predictions)])
 
 
 class ChordsMajMin(IntervalAnnotationTarget):
-
+    """ class for only maj and min chords"""
     def __init__(self, fps):
         # 25 classes - 12 minor, 12 major, one "No Chord"
         super(ChordsMajMin, self).__init__(fps, 25)
 
     @property
     def name(self):
+        """Name format"""
         return 'chords_majmin_fps={}'.format(self.fps)
 
     def _dummy_target(self):
-        dt = np.zeros(self.num_classes, dtype=np.float32)
-        dt[-1] = 1
-        return dt
+        d_target = np.zeros(self.num_classes, dtype=np.float32)
+        d_target[-1] = 1
+        return d_target
 
     def _annotations_to_targets(self, labels):
         """
@@ -124,12 +127,12 @@ class ChordsMajMin(IntervalAnnotationTarget):
         # with each semitone. we have duplicate mappings for flat and sharp
         # notes, just to be sure.
         natural = list(zip(string.ascii_uppercase[:7], [0, 2, 3, 5, 7, 8, 10]))
-        sharp = list(map(lambda v: (v[0] + '#', (v[1] + 1) % 12), natural))
-        flat = list(map(lambda v: (v[0] + 'b', (v[1] - 1) % 12), natural))
+        sharp = [(v[0] + '#', (v[1] + 1) % 12) for v in natural]
+        flat = [(v[0] + 'b', (v[1] - 1) % 12) for v in natural]
 
         # 'no chord' is coded as 'N'. The class ID of 'N' is 24, after all
         # major and minor chords. Sometimes there is also an 'X' annotation,
-        # meaning that the chord cannot be properly determined on beat-lebel
+        # meaning that the chord cannot be properly determined on beat-label
         # (too much going on in the audio). We will treat this also as
         # 'no chord'
         root_note_map = dict(natural + sharp + flat + [('N', 24), ('X', 24)])
@@ -152,7 +155,7 @@ class ChordsMajMin(IntervalAnnotationTarget):
         # we will shift the class ids for all minor notes by 12
         # (num major chords)
         chord_type_shift = np.array(
-            map(lambda x: 12 if 'min' in x or 'dim' in x else 0, chord_type)
+            [12 if 'min' in x or 'dim' in x else 0 for x in chord_type]
         )
 
         # now we can compute the final chord class id
@@ -161,7 +164,7 @@ class ChordsMajMin(IntervalAnnotationTarget):
 
     def _targets_to_annotations(self, targets):
         natural = list(zip([0, 2, 3, 5, 7, 8, 10], string.ascii_uppercase[:7]))
-        sharp = list(map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural))
+        sharp = [((v[0] + 1) % 12, v[1] + '#') for v in natural]
 
         semitone_to_label = dict(sharp + natural)
 
@@ -174,37 +177,38 @@ class ChordsMajMin(IntervalAnnotationTarget):
         spf = 1. / self.fps
         labels = [(i * spf, pred_to_label(p)) for i, p in enumerate(targets)]
 
-        # join same consequtive predictions
+        # join same consecutive predictions
         prev_label = (None, None)
-        uniq_labels = []
+        unique_labels = []
 
         for label in labels:
             if label[1] != prev_label[1]:
-                uniq_labels.append(label)
+                unique_labels.append(label)
                 prev_label = label
 
         # end time of last label is one frame duration after
         # the last prediction time
-        start_times, chord_labels = zip(*uniq_labels)
+        start_times, chord_labels = list(zip(*unique_labels))
         end_times = start_times[1:] + (labels[-1][0] + spf,)
 
-        return zip(start_times, end_times, chord_labels)
+        return list(zip(start_times, end_times, chord_labels))
 
 
 class ChordsRoot(IntervalAnnotationTarget):
-
+    """Root notes of the chord"""
     def __init__(self, fps):
         # 13 classes - 12 semitones and "no chord"
         super(ChordsRoot, self).__init__(fps, 13)
 
     @property
     def name(self):
+        """Naming"""
         return 'chords_root_fps={}'.format(self.fps)
 
     def _dummy_target(self):
-        dt = np.zeros(self.num_classes, dtype=np.float32)
-        dt[-1] = 1
-        return dt
+        d_target = np.zeros(self.num_classes, dtype=np.float32)
+        d_target[-1] = 1
+        return d_target
 
     def _annotations_to_targets(self, labels):
         """
@@ -217,8 +221,8 @@ class ChordsRoot(IntervalAnnotationTarget):
         # with each semitone. we have duplicate mappings for flat and sharp
         # notes, just to be sure.
         natural = list(zip(string.ascii_uppercase[:7], [0, 2, 3, 5, 7, 8, 10]))
-        sharp = list(map(lambda v: (v[0] + '#', (v[1] + 1) % 12), natural))
-        flat = list(map(lambda v: (v[0] + 'b', (v[1] - 1) % 12), natural))
+        sharp = [(v[0] + '#', (v[1] + 1) % 12) for v in natural]
+        flat = [(v[0] + 'b', (v[1] - 1) % 12) for v in natural]
 
         # 'no chord' is coded as 'N'. The class ID of 'N' is 12, after all
         # root notes. Sometimes there is also an 'X' annotation,
@@ -238,7 +242,7 @@ class ChordsRoot(IntervalAnnotationTarget):
 
     def _targets_to_annotations(self, targets):
         natural = list(zip([0, 2, 3, 5, 7, 8, 10], string.ascii_uppercase[:7]))
-        sharp = list(map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural))
+        sharp = [((v[0] + 1) % 12, v[1] + '#') for v in natural]
 
         semitone_to_label = dict(sharp + natural + [(12, 'N')])
         spf = 1. / self.fps
@@ -256,10 +260,10 @@ class ChordsRoot(IntervalAnnotationTarget):
 
         # end time of last label is one frame duration after
         # the last prediction time
-        start_times, chord_labels = zip(*uniq_labels)
+        start_times, chord_labels = list(zip(*uniq_labels))
         end_times = start_times[1:] + (labels[-1][0] + spf,)
 
-        return zip(start_times, end_times, chord_labels)
+        return list(zip(start_times, end_times, chord_labels))
 
 
 # class ChordsMajMinSevenths(IntervalAnnotationTarget):
@@ -302,9 +306,9 @@ class ChordsRoot(IntervalAnnotationTarget):
 #         return one_hot(class_ids, self.num_classes)
 #
 #     def _targets_to_annotations(self, targets):
-#         natural = zip([0, 2, 3, 5, 7, 8, 10], string.ascii_uppercase[:7])
-#         sharp = map(lambda v: ((v[0] + 1) % 12, v[1] + '#'), natural)
-#         roots = {(a - 3) % 12: b for a, b in dict(sharp + natural).iteritems()}
+#         natural = list(zip([0, 2, 3, 5, 7, 8, 10], string.ascii_uppercase[:7]))
+#         sharp = [((v[0] + 1) % 12, v[1] + '#') for v in natural]
+#         roots = {(a - 3) % 12: b for a, b in dict(sharp + natural).items()}
 #         ext = ['maj', '7', 'maj7', 'min', 'min7', 'minmaj7']
 #
 #         def pred_to_label(pred):
@@ -330,12 +334,12 @@ class ChordsRoot(IntervalAnnotationTarget):
 #
 #         # end time of last label is one frame duration after
 #         # the last prediction time
-#         start_times, chord_labels = zip(*uniq_labels)
+#         start_times, chord_labels = list(zip(*uniq_labels))
 #         end_times = start_times[1:] + (labels[-1][0] + spf,)
 #
-#         return zip(start_times, end_times, chord_labels)
-
-
+#         return list(zip(start_times, end_times, chord_labels))
+#
+#
 # class ChromaTarget(IntervalAnnotationTarget):
 #
 #     def __init__(self, fps):
@@ -359,6 +363,7 @@ class ChordsRoot(IntervalAnnotationTarget):
 
 
 def add_sacred_config(ex):
+    """Configuration adding"""
     ex.add_named_config(
         'chords_maj_min',
         target=dict(
@@ -383,5 +388,5 @@ def add_sacred_config(ex):
 
 
 def create_target(fps, config):
+    """Creates targets"""
     return globals()[config['name']](fps=fps, **config['params'])
-

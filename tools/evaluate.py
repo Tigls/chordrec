@@ -2,7 +2,7 @@ import os
 import fnmatch
 from docopt import docopt
 
-import dmgr
+from chordrec.helpers import dmgr
 
 from chordrec import test
 

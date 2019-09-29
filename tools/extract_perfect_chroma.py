@@ -19,12 +19,12 @@ Options:
 
 from os.path import splitext, basename, join
 import numpy as np
-from itertools import chain, izip
+from itertools import chain
 from docopt import docopt
 import madmom as mm
 import mir_eval
 
-from dmgr.files import find, match_files
+from chordrec.helpers.dmgr.files import find, match_files
 
 
 def to_chroma(intervals, labels, num_frames, fps):
@@ -67,12 +67,12 @@ def main():
         find(d, '*.flac') for d in args['<dirs>']))
 
     if len(chord_files) != len(audio_files):
-        print 'ERROR: {} chord files, but {} audio files'.format(
-            len(chord_files), len(audio_files))
+        print('ERROR: {} chord files, but {} audio files'.format(
+            len(chord_files), len(audio_files)))
 
     audio_files = match_files(chord_files, audio_files, '.chords', '.flac')
 
-    for cf, af in izip(chord_files, audio_files):
+    for cf, af in zip(chord_files, audio_files):
         sig = mm.audio.signal.FramedSignal(af, fps=float(args['<fps>']))
         intervals, labels = mir_eval.io.load_labeled_intervals(cf)
 

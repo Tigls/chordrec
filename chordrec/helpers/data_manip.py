@@ -1,4 +1,5 @@
 import os
+
 DATASET_DEFS = {
     'beatles': {
         'data_dir': 'beatles',
@@ -25,6 +26,7 @@ DATASET_DEFS = {
         'split_filename': '8-fold_cv_random_{}.fold'
     }
 }
+
 
 def load_dataset(name, data_dir, feature_cache_dir,
                  compute_features, compute_targets):

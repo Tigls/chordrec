@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.ndimage import shift
 import random
-from targets import one_hot
+from .targets import one_hot
 
 
 class SemitoneShift(object):
@@ -119,7 +119,7 @@ class Detuning(object):
 
 def create_augmenters(augmentation):
     return [globals()[name](**params)
-            for name, params in augmentation.iteritems()]
+            for name, params in augmentation.items()]
 
 
 def add_sacred_config(ex):

@@ -1,0 +1,17 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+pyyaml = "*"
+librosa = "*"
+scipy = "*"
+termcolor = "*"
+tensorflow = "~=2.0.0rc2"
+sacred = "*"
+
+[requires]
+python_version = "3.7"

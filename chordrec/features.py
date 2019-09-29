@@ -1,5 +1,5 @@
 import numpy as np
-import madmom as mm
+
 import pickle
 
 
@@ -96,7 +96,7 @@ class LogFiltSpec:
 class Chroma:
 
     def __init__(self, frame_size, fmax, fps, oct_width, center_note, log_eta,
-                 sample_rate=44100, fold=None):
+                 sample_rate=44100, fold=None, bottleneck=None):
         self.fps = fps
         self.fmax = fmax
         self.sample_rate = sample_rate
