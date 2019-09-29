@@ -15,7 +15,7 @@ def one_hot(class_ids, num_classes):
     one_hot_enc[np.arange(len(class_ids)), class_ids] = 1
 
     # make sure one-hot encoding corresponds to class ids
-    assert one_hot_enc.argmax(axis=1) == class_ids
+    # assert one_hot_enc.argmax(axis=1) == class_ids
     # make sure there is only one id set per vector
     assert (one_hot_enc.sum(axis=1) == 1).all()
 
@@ -140,7 +140,7 @@ class ChordsMajMin(IntervalAnnotationTarget):
         # then, we load the annotations, map the chords to class ids, and
         # finally map class ids to a one-hot encoding. first, map the root
         # notes.
-        chord_root_notes = [c.split(':')[0].split('/')[0] for c in labels]
+        chord_root_notes = [c.decode().split(':')[0].split('/')[0] for c in labels]
         chord_root_note_ids = np.array([root_note_map[crn]
                                         for crn in chord_root_notes])
 
@@ -150,7 +150,7 @@ class ChordsMajMin(IntervalAnnotationTarget):
         # Taemin Cho, Juan Bello: "On the relative importance of Individual
         # Components of Chord Recognition Systems"
 
-        chord_type = [c.split(':')[1] if ':' in c else '' for c in labels]
+        chord_type = [c.decode().split(':')[1] if ':' in c.decode() else '' for c in labels]
 
         # we will shift the class ids for all minor notes by 12
         # (num major chords)

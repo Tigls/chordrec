@@ -6,12 +6,18 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+cython = "*"
 pyyaml = "*"
 librosa = "*"
 scipy = "*"
 termcolor = "*"
 tensorflow = "~=2.0.0rc2"
 sacred = "*"
+pymongo = "*"
+madmom = "*"
 
 [requires]
 python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

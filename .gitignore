@@ -118,6 +118,8 @@ crashlytics-build.properties
 # Created by .ignore support plugin (hsz.mobi)
 
 # Own ignores
+data/
+feature_cache/
 experiments/data
 notes/
 experiments/feature_cache/*

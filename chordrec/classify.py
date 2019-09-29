@@ -1,16 +1,16 @@
 import os
 
 import yaml
-from termcolor import colored
+from    termcolor import colored
 
 from chordrec import data
 from chordrec.helpers import dmgr
 from chordrec import features
 # import nn
 from chordrec import targets
-from . import test
+# from . import test
 
-from chordrec.models import dnn, avg_gap_feature, crf, rnn
+# from chordrec.models import dnn, avg_gap_feature, crf, rnn
 from chordrec.experiment import TempDir, setup, compute_features #create_optimiser
 
 # Initialise Sacred experiment
@@ -18,38 +18,38 @@ ex = setup('Classify Chords')
 
 
 # Standard config
-@ex.config
-def _cfg():
-    observations = 'results'
-    feature_extractor = None
-    target = None
-    model = None
-    optimiser = None
-    training = None
-    regularisation = None
-    testing = None
-    augmentation = None
+# @ex.config
+# def _cfg():
+#     observations = 'results'
+#     feature_extractor = None
+#     target = None
+#     model = None
+#     optimiser = None
+#     training = None
+#     regularisation = None
+#     testing = None
+#     augmentation = None
 
 
 # add models
-dnn.add_sacred_config(ex)
-avg_gap_feature.add_sacred_config(ex)
-crf.add_sacred_config(ex)
-rnn.add_sacred_config(ex)
+# dnn.add_sacred_config(ex)
+# avg_gap_feature.add_sacred_config(ex)
+# crf.add_sacred_config(ex)
+# rnn.add_sacred_config(ex)
 
 
 # add general configs
-@ex.named_config
-def learn_rate_schedule():
-    optimiser = dict(
-        schedule=dict(
-            interval=10,
-            factor=0.5
-        )
-    )
+# @ex.named_config
+# def learn_rate_schedule():
+#     optimiser = dict(
+#         schedule=dict(
+#             interval=10,
+#             factor=0.5
+#         )
+#     )
 
 
-@ex.automain
+# @ex.automain
 def main(_log, datasource, feature_extractor, target, model, optimiser,
          training, regularisation, augmentation, testing):
 

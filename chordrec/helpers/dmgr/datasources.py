@@ -1,4 +1,4 @@
-from itertools import izip, groupby
+from itertools import groupby
 from os.path import basename
 
 import numpy as np
@@ -467,7 +467,7 @@ class ContextDataSource(DataSource):
             return self[range(idx.start or 0, idx.stop or self.n_data,
                               idx.step or 1)]
 
-        elif isinstance(idx, np.ndarray):
+        elif isinstance(idx, np.ndarray) or isinstance(idx, range):
             return self[list(idx)]
 
         else:
@@ -476,7 +476,7 @@ class ContextDataSource(DataSource):
     @property
     def n_data(self):
         """int: number of data points (equals number of targets)"""
-        return self._n_data / self.step
+        return self._n_data // self.step
 
 
 class AggregatedDataSource(object):
@@ -517,7 +517,8 @@ class AggregatedDataSource(object):
             raise ValueError('Data sources target type has to be equal')
 
         self._data_sources = data_sources
-        self._ds_ends = np.array([0] + [len(d) for d in data_sources]).cumsum()
+        a = [len(d) for d in data_sources]
+        # self._ds_ends = np.array([0] + [len(d//10) for d in data_sources]).cumsum()
         self.keep_order = keep_order
 
     @classmethod
@@ -572,7 +573,7 @@ class AggregatedDataSource(object):
         return cls(
             [data_source_type.from_files(d, t, memory_mapped=memory_mapped,
                                          name=n, **kwargs)
-             for d, t, n in izip(data_files, target_files, names)]
+             for d, t, n in zip(data_files, target_files, names)]
         )
 
     def _to_ds_idx(self, idx):
