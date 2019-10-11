@@ -1,4 +1,4 @@
-from dnn import *
+from .dnn import *
 
 
 def build_model(in_shape, out_size, model):

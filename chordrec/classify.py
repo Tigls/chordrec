@@ -122,84 +122,84 @@ def main(_log, datasource, feature_extractor, target, model, optimiser,
             print(colored('Test Set:', 'blue'))
             print('\t', test_set)
             print('')
-    #
-    #         # build network
-    #         print(colored('Building network...\n', 'red'))
-    #
-    #         model_type = globals()[model['type']]
-    #         mdl = model_type.build_model(in_shape=train_set.dshape,
-    #                                      out_size=train_set.tshape[0],
-    #                                      model=model)
-    #
-    #         # mandatory parts of the model
-    #         neural_net = mdl['network']
-    #         input_var = mdl['input_var']
-    #         target_var = mdl['target_var']
-    #         loss_fn = mdl['loss_fn']
-    #
-    #         # optional parts
-    #         mask_var = mdl.get('mask_var')
-    #         feature_out = mdl.get('feature_out')
-    #
-    #         train_batches, validation_batches = model_type.create_iterators(
-    #             train_set, val_set, training, augmentation
-    #         )
-    #
-    #         opt, lrs = create_optimiser(optimiser)
-    #
-    #         train_fn = nn.compile_train_fn(
-    #             neural_net, input_var, target_var,
-    #             loss_fn=loss_fn, opt_fn=opt, mask_var=mask_var,
-    #             **regularisation
-    #         )
-    #
-    #         test_fn = nn.compile_test_func(
-    #             neural_net, input_var, target_var,
-    #             loss_fn=loss_fn, mask_var=mask_var,
-    #             **regularisation
-    #         )
-    #
-    #         process_fn = nn.compile_process_func(
-    #             neural_net, input_var, mask_var=mask_var)
-    #
-    #         if feature_out is not None:
-    #             feature_fn = nn.compile_process_func(
-    #                 feature_out, input_var, mask_var=mask_var
-    #             )
-    #         else:
-    #             feature_fn = None
-    #
-    #         print(colored('Neural Network:', 'red'))
-    #         print(nn.to_string(neural_net))
-    #         print('')
-    #
-    #         if 'param_file' in training:
-    #             nn.load_params(neural_net,
-    #                            training['param_file'].format(test_fold))
-    #             train_losses = []
-    #             val_losses = []
-    #             val_accs = []
-    #         else:
-    #             if 'init_file' in training:
-    #                 print('initialising')
-    #                 nn.load_params(neural_net,
-    #                                training['init_file'].format(test_fold))
-    #             print(colored('Starting training...\n', 'red'))
-    #             train_losses, val_losses, _, val_accs = nn.train(
-    #                 network=neural_net,
-    #                 train_fn=train_fn, train_batches=train_batches,
-    #                 test_fn=test_fn, validation_batches=validation_batches,
-    #                 threads=10, callbacks=[lrs] if lrs else [],
-    #                 num_epochs=training['num_epochs'],
-    #                 early_stop=training['early_stop'],
-    #                 early_stop_acc=training['early_stop_acc']
-    #             )
-    #             param_file = os.path.join(
-    #                 exp_dir, 'params_fold_{}.pkl'.format(test_fold))
-    #             nn.save_params(neural_net, param_file)
-    #             ex.add_artifact(param_file)
-    #
-    #         print(colored('\nStarting testing...\n', 'red'))
+
+            # build network
+            print(colored('Building network...\n', 'red'))
+
+            model_type = globals()[model['type']]
+            mdl = model_type.build_model(in_shape=train_set.dshape,
+                                         out_size=train_set.tshape[0],
+                                         model=model)
+
+            # mandatory parts of the model
+            neural_net = mdl['network']
+            input_var = mdl['input_var']
+            target_var = mdl['target_var']
+            loss_fn = mdl['loss_fn']
+
+            # optional parts
+            mask_var = mdl.get('mask_var')
+            feature_out = mdl.get('feature_out')
+
+            train_batches, validation_batches = model_type.create_iterators(
+                train_set, val_set, training, augmentation
+            )
+
+            opt, lrs = create_optimiser(optimiser)
+
+            train_fn = nn.compile_train_fn(
+                neural_net, input_var, target_var,
+                loss_fn=loss_fn, opt_fn=opt, mask_var=mask_var,
+                **regularisation
+            )
+
+            test_fn = nn.compile_test_func(
+                neural_net, input_var, target_var,
+                loss_fn=loss_fn, mask_var=mask_var,
+                **regularisation
+            )
+
+            process_fn = nn.compile_process_func(
+                neural_net, input_var, mask_var=mask_var)
+
+            if feature_out is not None:
+                feature_fn = nn.compile_process_func(
+                    feature_out, input_var, mask_var=mask_var
+                )
+            else:
+                feature_fn = None
+
+            print(colored('Neural Network:', 'red'))
+            print(nn.to_string(neural_net))
+            print('')
+
+            if 'param_file' in training:
+                nn.load_params(neural_net,
+                               training['param_file'].format(test_fold))
+                train_losses = []
+                val_losses = []
+                val_accs = []
+            else:
+                if 'init_file' in training:
+                    print('initialising')
+                    nn.load_params(neural_net,
+                                   training['init_file'].format(test_fold))
+                print(colored('Starting training...\n', 'red'))
+                train_losses, val_losses, _, val_accs = nn.train(
+                    network=neural_net,
+                    train_fn=train_fn, train_batches=train_batches,
+                    test_fn=test_fn, validation_batches=validation_batches,
+                    threads=10, callbacks=[lrs] if lrs else [],
+                    num_epochs=training['num_epochs'],
+                    early_stop=training['early_stop'],
+                    early_stop_acc=training['early_stop_acc']
+                )
+                param_file = os.path.join(
+                    exp_dir, 'params_fold_{}.pkl'.format(test_fold))
+                nn.save_params(neural_net, param_file)
+                ex.add_artifact(param_file)
+
+            print(colored('\nStarting testing...\n', 'red'))
     #
     #         if feature_fn is not None:
     #             dest_dir = os.path.join(exp_dir,

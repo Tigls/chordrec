@@ -1,4 +1,4 @@
-#%%
+
 import os
 import yaml
 from termcolor import colored
@@ -7,13 +7,14 @@ from chordrec.helpers import dmgr
 from chordrec import features
 from chordrec import targets
 from chordrec.experiment import TempDir, setup, compute_features
+from tensorflow import keras
 
 datasource = {
   'cached': 'true',
   'context_size': 7,
   'datasets': ['beatles'],
   'preprocessors': [],
-  'test_fold': [0, 1, 2, 3, 4, 5, 6, 7],
+  'test_fold': [0], #
   'val_fold': None,
 }
 feature_extractor = {
@@ -77,3 +78,40 @@ for test_fold, val_fold in zip(datasource['test_fold'],
     print(colored('Test Set:', 'blue'))
     print('\t', test_set)
     print('')
+
+train_iterator = dmgr.iterators.iterate_aggregated(train_set, 1)
+val_iterator = dmgr.iterators.iterate_aggregated(val_set, 1)
+
+model = keras.Sequential()
+model.add(keras.layers.InputLayer(input_shape=(15, 105)))
+model.add(keras.layers.Reshape((15, 105, 1)))
+model.add(keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu'))
+model.add(keras.layers.Conv2D(32, (3, 3),  padding='same', activation='relu'))
+model.add(keras.layers.Conv2D(32, (3, 3),  padding='same', activation='relu'))
+model.add(keras.layers.Conv2D(32, (3, 3),  padding='same', activation='relu'))
+model.add(keras.layers.MaxPooling2D((1, 2)))
+model.add(keras.layers.Dropout(0.2))
+model.add(keras.layers.Conv2D(64, (3, 3),  activation='relu'))
+model.add(keras.layers.Conv2D(64, (3, 3),  activation='relu'))
+model.add(keras.layers.MaxPooling2D((1, 2)))
+model.add(keras.layers.Dropout(0.2))
+model.add(keras.layers.Conv2D(128, (9, 12),activation='relu'))
+model.add(keras.layers.Conv2D(25, (1, 1), activation='linear'))
+model.add(keras.layers.GlobalAveragePooling2D())
+model.summary()
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+model.summary()
+
+batch_size = 32
+epochs = 1
+
+history = model.fit_generator(
+    generator = train_iterator,
+    steps_per_epoch=batch_size, #batch_size,
+    epochs=epochs,
+    validation_data=val_iterator,
+    validation_steps=batch_size # batch_size
+)
