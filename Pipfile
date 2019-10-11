@@ -11,13 +11,13 @@ pyyaml = "*"
 librosa = "*"
 scipy = "*"
 termcolor = "*"
-tensorflow = "~=2.0.0rc2"
+tensorflow-gpu = "*"
 sacred = "*"
 pymongo = "*"
 madmom = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.6"
 
 [pipenv]
-allow_prereleases = true
+allow_prereleases = false
