@@ -1,5 +1,7 @@
-
+# %%
 import os
+import pickle
+
 import yaml
 from termcolor import colored
 from chordrec import data
@@ -8,6 +10,7 @@ from chordrec import features
 from chordrec import targets
 from chordrec.experiment import TempDir, setup, compute_features
 from tensorflow import keras
+import matplotlib.pyplot as plt
 
 datasource = {
   'cached': 'true',
@@ -78,25 +81,40 @@ for test_fold, val_fold in zip(datasource['test_fold'],
     print(colored('Test Set:', 'blue'))
     print('\t', test_set)
     print('')
+#%%
+batch_size = 512
 
-train_iterator = dmgr.iterators.iterate_aggregated(train_set, 1)
-val_iterator = dmgr.iterators.iterate_aggregated(val_set, 1)
+train_iterator = dmgr.generator.iterate_aggregated_data(train_set, batch_size)
+val_iterator = dmgr.generator.iterate_aggregated_data(val_set, batch_size)
+test_iterator = dmgr.generator.iterate_aggregated_data(test_set, 1)
+
+checkpoint = keras.callbacks.ModelCheckpoint('.\checkpoints\chordrec_{epoch}.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='max')
+early = keras.callbacks.EarlyStopping(monitor='loss', min_delta=1e-2, patience=15, verbose=1)
+tensorboard_cbk = keras.callbacks.TensorBoard(log_dir='.\logs')
+callbacks_list = [checkpoint, early, tensorboard_cbk]
 
 model = keras.Sequential()
 model.add(keras.layers.InputLayer(input_shape=(15, 105)))
 model.add(keras.layers.Reshape((15, 105, 1)))
 model.add(keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu'))
-model.add(keras.layers.Conv2D(32, (3, 3),  padding='same', activation='relu'))
-model.add(keras.layers.Conv2D(32, (3, 3),  padding='same', activation='relu'))
-model.add(keras.layers.Conv2D(32, (3, 3),  padding='same', activation='relu'))
+model.add(keras.layers.BatchNormalization())
+#model.add(keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu'))
+#model.add(keras.layers.BatchNormalization())
+#model.add(keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu'))
+#model.add(keras.layers.BatchNormalization())
+#model.add(keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu'))
 model.add(keras.layers.MaxPooling2D((1, 2)))
-model.add(keras.layers.Dropout(0.2))
-model.add(keras.layers.Conv2D(64, (3, 3),  activation='relu'))
-model.add(keras.layers.Conv2D(64, (3, 3),  activation='relu'))
-model.add(keras.layers.MaxPooling2D((1, 2)))
-model.add(keras.layers.Dropout(0.2))
-model.add(keras.layers.Conv2D(128, (9, 12),activation='relu'))
+model.add(keras.layers.Dropout(0.5))
+model.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(keras.layers.BatchNormalization())
+#model.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
+#model.add(keras.layers.BatchNormalization())
+model.add(keras.layers.MaxPooling2D((1, 2))),
+model.add(keras.layers.Dropout(0.5))
+model.add(keras.layers.Conv2D(128, (9, 12), activation='relu'))
+#model.add(keras.layers.BatchNormalization())
 model.add(keras.layers.Conv2D(25, (1, 1), activation='linear'))
+model.add(keras.layers.BatchNormalization())
 model.add(keras.layers.GlobalAveragePooling2D())
 model.summary()
 model.compile(optimizer='adam',
@@ -105,13 +123,44 @@ model.compile(optimizer='adam',
 
 model.summary()
 
-batch_size = 32
-epochs = 1
-
+train_steps = 430
+val_steps = 73
+epochs = 170
+# %%
 history = model.fit_generator(
-    generator = train_iterator,
-    steps_per_epoch=batch_size, #batch_size,
+    generator=train_iterator,
+    steps_per_epoch=train_steps,
     epochs=epochs,
     validation_data=val_iterator,
-    validation_steps=batch_size # batch_size
+    validation_steps=val_steps,
+    callbacks=callbacks_list
 )
+# %%
+model.save('./model_11_10.h5')
+history.save()
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+
+with open('./models/trainHistoryDict', 'wb') as file_pi:
+    pickle.dump(history.history, file_pi)
+
+# summarize history for accuracy
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+
+# summarize history for loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+
+predictions = model.predict(a)

@@ -99,28 +99,6 @@ def iterate_batches(data_source, batch_size, randomise=False, expand=True):
         yield data_source[batch_idxs]
 
 def iterate_batches_new(data_source, batch_size, randomise=False, expand=True):
-    """
-    Generates mini-batches from a data source.
-
-    Parameters
-    ----------
-    data_source : :class:DataSource
-        Data source to generate mini-batches from
-    batch_size : int
-        Number of data points and targets in each mini-batch
-    randomise : bool
-        Indicates whether to randomize the items in each mini-batch
-        or not.
-    expand : bool
-        Indicates whether to fill up the last mini-batch with
-        random data points if there is not enough data available.
-
-    Yields
-    ------
-    tuple of numpy arrays
-        mini-batch of data and targets
-
-    """
 
     idxs = range(data_source.n_data)
 
@@ -193,40 +171,6 @@ def _chunks_to_arrays(data_chunks, target_chunks, max_len):
     return data, targets, mask
 
 def iterate_aggregated(aggregated_data_source, batch_size, randomise=False):
-    """
-    Generates mini batches of sequences by iterating datasource-wise over an
-    aggregated data source. The order of data taken from a single data source
-    is not randomised, while the order of data sources can be randomised.
-
-    This generator generates mini batches of :param:batch_size sub-sequences
-    of length :param:max_seq_len. Each :class:DataSource contained in the
-    aggragated data source is considered a sequence. If too long, sequences
-    are broken into several sub-sequences in a mini batch.
-
-    Parameters
-    ----------
-    aggregated_data_source : :class:AggregatedDataSource
-        Aggregated data source to generate mini-batches from
-    batch_size : int
-        Number of (sub-)sequences per mini batch
-    randomise : bool
-        Indicates whether to randomise the order of data sources
-    expand : bool
-        Indicates whether to fill the last mini batch with sequences from a
-        random data source if there is not enough data available
-        Maximum length of each sequence in a data source
-    max_seq_len : int or None
-        Maximum sequence length of each sub-sequence in the mini batch. If
-        None, the maximum length is determined to be the longest data source
-        in the mini-batch. Note that this might result in different
-        sequence lengths in each mini batch.
-
-    Yields
-    ------
-    tuple of numpy arrays
-        mini batch of sub-sequences with data, target, and mask arrays
-
-    """
 
     n_ds = aggregated_data_source.n_datasources
     ds_idxs = range(n_ds)
@@ -237,7 +181,7 @@ def iterate_aggregated(aggregated_data_source, batch_size, randomise=False):
     for ds_idx in ds_idxs:
         ds = aggregated_data_source.datasource(ds_idx)
         # we chunk the data according to sequence_length
-        yield iterate_batches_new(ds, ds.n_data)
+        yield iterate_batches_new(ds, batch_size or ds.n_data)
 
 
 def iterate_sequences(aggregated_data_source, batch_size, randomise=False,

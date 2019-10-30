@@ -124,3 +124,6 @@ experiments/data
 notes/
 experiments/feature_cache/*
 !experiments/feature_cache/README
+logs/
+models/
+checkpoints/
